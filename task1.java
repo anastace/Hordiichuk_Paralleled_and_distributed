@@ -2,11 +2,11 @@ package com.example.task1;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class CasMutex extends Object {
+public class Cas extends Object {
     private AtomicReference<Runnable> currThread = new AtomicReference<>();
     private LinkedBlockingQueue<Runnable> waitingThreads;
 
-    public CasMutex(LinkedBlockingQueue<Runnable> waitingThreads) {
+    public Cas(LinkedBlockingQueue<Runnable> waitingThreads) {
         this.waitingThreads = waitingThreads;
     }
     public void lock(){
