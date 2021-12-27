@@ -20,26 +20,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * This is an event sourced actor. It has a state, {@link ShoppingCart.State}, which
- * stores the current shopping cart items and whether it's checked out.
- *
- * Event sourced actors are interacted with by sending them commands,
- * see classes implementing {@link ShoppingCart.Command}.
- *
- * Commands get translated to events, see classes implementing {@link ShoppingCart.Event}.
- * It's the events that get persisted by the entity. Each event will have an event handler
- * registered for it, and an event handler updates the current state based on the event.
- * This will be done when the event is first created, and it will also be done when the entity is
- * loaded from the database - each event will be replayed to recreate the state
- * of the entity.
- */
-public class ShoppingCart
+public class ShoppingTill
         extends EventSourcedBehavior<ShoppingCart.Command, ShoppingCart.Event, ShoppingCart.State> {
 
-    /**
-     * The state for the {@link ShoppingCart} entity.
-     */
+  
     public final class State implements CborSerializable {
         private Map<String, Integer> items = new HashMap<>();
         private Optional<Instant> checkoutDate = Optional.empty();
@@ -50,10 +34,6 @@ public class ShoppingCart
 
         public Optional<Instant> getCheckoutDate() {
             return checkoutDate;
-        }
-
-        public boolean isEmpty() {
-            return items.isEmpty();
         }
 
         public boolean hasItem(String itemId) {
@@ -91,12 +71,6 @@ public class ShoppingCart
     public interface Command extends CborSerializable {
     }
 
-    /**
-     * A command to add an item to the cart.
-     *
-     * It can reply with `StatusReply<Summary>`, which is sent back to the caller when
-     * all the events emitted by this command are successfully persisted.
-     */
     public static class AddItem implements Command {
         public final String itemId;
         public final int quantity;
@@ -124,7 +98,7 @@ public class ShoppingCart
     }
 
     /**
-     * A command to adjust the quantity of an item in the cart.
+     * A command to adjust the quantity of an item
      */
     public static class AdjustItemQuantity implements Command {
         public final String itemId;
@@ -138,11 +112,7 @@ public class ShoppingCart
         }
     }
 
-    /**
-     * A command to get the current state of the shopping cart.
-     *
-     * The reply type is the {@link Summary}
-     */
+
     public static class Get implements Command {
         public final ActorRef<Summary> replyTo;
 
@@ -152,12 +122,6 @@ public class ShoppingCart
         }
     }
 
-    /**
-     * A command to checkout the shopping cart.
-     *
-     * The reply type is the {@link StatusReply<Summary>}, which will be returned when the events have been
-     * emitted.
-     */
     public static class Checkout implements Command {
         public final ActorRef<StatusReply<Summary>> replyTo;
 
@@ -167,9 +131,6 @@ public class ShoppingCart
         }
     }
 
-    /**
-     * Summary of the shopping cart state, used in reply messages.
-     */
     public static final class Summary implements CborSerializable {
         public final Map<String, Integer> items;
         public final boolean checkedOut;
@@ -251,12 +212,12 @@ public class ShoppingCart
     }
 
     public static Behavior<Command> create(String cartId) {
-        return new ShoppingCart(cartId);
+        return new ShoppingTill(cartId);
     }
 
     private final String cartId;
 
-    private ShoppingCart(String cartId) {
+    private ShoppingTill(String cartId) {
         super(PersistenceId.of("ShoppingCart", cartId),
                 SupervisorStrategy.restartWithBackoff(Duration.ofMillis(200), Duration.ofSeconds(5), 0.1));
         this.cartId = cartId;
@@ -298,7 +259,7 @@ public class ShoppingCart
         return Effect().none();
     }
 
-    private class OpenShoppingCartCommandHandlers {
+    private class OpenShoppingTillCommandHandlers {
 
         Effect<Event, State> onAddItem(State state, AddItem cmd) {
             if (state.hasItem(cmd.itemId)) {
@@ -333,7 +294,7 @@ public class ShoppingCart
                         .thenRun(updatedCart -> cmd.replyTo.tell(StatusReply.success(updatedCart.toSummary())));
             } else {
                 cmd.replyTo.tell(StatusReply.error(
-                        "Cannot adjust quantity for item '" + cmd.itemId + "'. Item not present on cart"));
+                        "Cannot adjust quantity for item '" + cmd.itemId + "'. Item not present"));
                 return Effect().none();
             }
         }
@@ -356,17 +317,17 @@ public class ShoppingCart
         }
 
         Effect<Event, State> onRemoveItem(RemoveItem cmd) {
-            cmd.replyTo.tell(StatusReply.error("Can't remove an item from an already checked out shopping cart"));
+            cmd.replyTo.tell(StatusReply.error("Can't remove an item from an already checked out purchase"));
             return Effect().none();
         }
 
         Effect<Event, State> onAdjustItemQuantity(AdjustItemQuantity cmd) {
-            cmd.replyTo.tell(StatusReply.error("Can't adjust item on an already checked out shopping cart"));
+            cmd.replyTo.tell(StatusReply.error("Can't adjust item on an already checked out purchase"));
             return Effect().none();
         }
 
         Effect<Event, State> onCheckout(Checkout cmd) {
-            cmd.replyTo.tell(StatusReply.error("Can't checkout already checked out shopping cart"));
+            cmd.replyTo.tell(StatusReply.error("Can't checkout already checked out purchase"));
             return Effect().none();
         }
     }
