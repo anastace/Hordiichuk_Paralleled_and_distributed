@@ -1,15 +1,11 @@
 package com.johnstarich.ee360p.skiplist;
-
 import java.util.AbstractSet;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicMarkableReference;
 
-/**
- * A fine-grained and lock-free skip-list implementation.
- * Created by johnstarich on 4/12/17.
- */
+
 public class SkipList extends AbstractSet<Integer> {
     class Node {
         final int key;
@@ -40,11 +36,6 @@ public class SkipList extends AbstractSet<Integer> {
     final int maxLevel;
     final float p = 0.5f;
 
-    /**
-     * Create a skip list with a maximum level.
-     * TODO: add complexity description
-     * @param maxLevel The maximum level for this SkipList
-     */
     public SkipList(int maxLevel) {
         this.currentLevels = new AtomicInteger(0);
         this.size = new AtomicInteger(0);
