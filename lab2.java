@@ -21,7 +21,7 @@ import java.util.Map;
 import java.util.Optional;
 
 public class ShoppingTill
-        extends EventSourcedBehavior<ShoppingCart.Command, ShoppingCart.Event, ShoppingCart.State> {
+        extends EventSourcedBehavior<ShoppingTill.Command, ShoppingTill.Event, ShoppingTill.State> {
 
   
     public final class State implements CborSerializable {
@@ -31,15 +31,12 @@ public class ShoppingTill
         public boolean isCheckedOut() {
             return checkoutDate.isPresent();
         }
-
         public Optional<Instant> getCheckoutDate() {
             return checkoutDate;
         }
-
         public boolean hasItem(String itemId) {
             return items.containsKey(itemId);
         }
-
         public State updateItem(String itemId, int quantity) {
             if (quantity == 0) {
                 items.remove(itemId);
@@ -48,26 +45,20 @@ public class ShoppingTill
             }
             return this;
         }
-
         public State removeItem(String itemId) {
             items.remove(itemId);
             return this;
         }
-
         public State checkout(Instant now) {
             checkoutDate = Optional.of(now);
             return this;
         }
-
         public Summary toSummary() {
             return new Summary(items, isCheckedOut());
         }
 
     }
 
-    /**
-     * This interface defines all the commands that the ShoppingCart persistent actor supports.
-     */
     public interface Command extends CborSerializable {
     }
 
@@ -82,10 +73,6 @@ public class ShoppingTill
             this.replyTo = replyTo;
         }
     }
-
-    /**
-     * A command to remove an item from the cart.
-     */
     public static class RemoveItem implements Command {
         public final String itemId;
         public final ActorRef<StatusReply<Summary>> replyTo;
@@ -96,10 +83,6 @@ public class ShoppingTill
             this.replyTo = replyTo;
         }
     }
-
-    /**
-     * A command to adjust the quantity of an item
-     */
     public static class AdjustItemQuantity implements Command {
         public final String itemId;
         public final int quantity;
@@ -111,17 +94,13 @@ public class ShoppingTill
             this.replyTo = replyTo;
         }
     }
-
-
     public static class Get implements Command {
         public final ActorRef<Summary> replyTo;
-
         @JsonCreator
         public Get(ActorRef<Summary> replyTo) {
             this.replyTo = replyTo;
         }
     }
-
     public static class Checkout implements Command {
         public final ActorRef<StatusReply<Summary>> replyTo;
 
@@ -130,12 +109,9 @@ public class ShoppingTill
             this.replyTo = replyTo;
         }
     }
-
     public static final class Summary implements CborSerializable {
         public final Map<String, Integer> items;
         public final boolean checkedOut;
-
-
         public Summary(Map<String, Integer> items, boolean checkedOut) {
             // Summary is included in messages and should therefore be immutable
             this.items = Collections.unmodifiableMap(new HashMap<>(items));
@@ -188,7 +164,6 @@ public class ShoppingTill
             this.itemId = itemId;
             this.quantity = quantity;
         }
-
         @Override
         public String toString() {
             return "ItemQuantityAdjusted(" + cartId + "," + itemId + "," + quantity + ")";
@@ -196,7 +171,6 @@ public class ShoppingTill
     }
 
     public static class CheckedOut implements Event {
-
         public final String cartId;
         public final Instant eventTime;
 
@@ -214,11 +188,10 @@ public class ShoppingTill
     public static Behavior<Command> create(String cartId) {
         return new ShoppingTill(cartId);
     }
-
     private final String cartId;
 
     private ShoppingTill(String cartId) {
-        super(PersistenceId.of("ShoppingCart", cartId),
+        super(PersistenceId.of("ShoppingTill", cartId),
                 SupervisorStrategy.restartWithBackoff(Duration.ofMillis(200), Duration.ofSeconds(5), 0.1));
         this.cartId = cartId;
     }
@@ -331,7 +304,6 @@ public class ShoppingTill
             return Effect().none();
         }
     }
-
     @Override
     public EventHandler<State, Event> eventHandler() {
         return newEventHandlerBuilder().forAnyState()
